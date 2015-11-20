@@ -16,10 +16,22 @@ build: $(MAIN_GO)
 test:
 	go test -v ./
 
-.PHONY: test-dependencies
-test-dependencies:
-	go get -u github.com/verdverm/frisby
+.PHONY: watch-test
+watch-test: bootstrap build
+	Watch -t make test
 
 .PHONY: run
 run: build
 	$(MAIN_BIN)
+
+.PHONY: watch-run
+watch-run: build
+	Watch -t make run
+
+.PHONY: bootstrap
+bootstrap:
+	go get github.com/eaburns/Watch
+
+.PHONY: e2e
+e2e:
+	_test/main.sh

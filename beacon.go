@@ -1,36 +1,49 @@
 package main
 
 import (
-  "fmt"
-  "net/http"
+	"log"
+	"net/http"
+	"strconv"
 
-  "github.com/gorilla/mux"
+	"github.com/gorilla/mux"
+	"github.com/sgoings/travis-beacon/handlers"
 )
 
-func GetChart(w http.ResponseWriter, r *http.Request) {
-  vars := mux.Vars(r)
-  name := vars["name"]
-  fmt.Fprintf(w, "Info about chart: %s\n", name)
+func addChartHandlers(router *mux.Router) {
+	subRouter := router.PathPrefix("/charts").
+		Headers("Content-Type", "application/json").
+		Subrouter()
+
+	subRouter.HandleFunc("/", handlers.GetCharts).Methods("GET")
+	subRouter.HandleFunc("/{name}", handlers.GetChart).Methods("GET")
 }
 
-func GetCharts(w http.ResponseWriter, r *http.Request) {
-  w.Write([]byte("List of all charts\n"))
+func addTravisHandlers(router *mux.Router) {
+	subRouter := router.PathPrefix("/charts").
+		Headers("Content-Type", "application/x-www-form-urlencoded").
+		MatcherFunc(func(r *http.Request, rm *mux.RouteMatch) bool {
+		travisToken := r.Header.Get("Authorization")
+		if travisToken == "" {
+			return false
+		}
+		return true
+	}).Subrouter()
+
+	subRouter.HandleFunc("/", handlers.UpdateCharts).Methods("POST")
 }
 
-func AddChartRoutes(router *mux.Router) {
-  subRouter := router.PathPrefix("/charts").Subrouter()
-
-  subRouter.HandleFunc("/", GetCharts).Methods("GET")
-  subRouter.HandleFunc("/{name}", GetChart).Methods("GET")
-}
-
-func AddRoutes(router *mux.Router) {
-  AddChartRoutes(router)
+func addHandlers(router *mux.Router) {
+	addChartHandlers(router)
+	addTravisHandlers(router)
 }
 
 func main() {
-  r := mux.NewRouter()
-  AddRoutes(r)
+	r := mux.NewRouter()
+	addHandlers(r)
 
-  http.ListenAndServe(":8000", r)
+	port := 8000
+	serveString := ":" + strconv.Itoa(port)
+
+	log.Printf("[INFO] Listening on %s", serveString)
+	http.ListenAndServe(serveString, r)
 }
