@@ -14,7 +14,7 @@ build: $(MAIN_GO)
 
 .PHONY: test
 test:
-	go test -v ./
+	go test -v ./ ./handlers ./chart ./storage ./travis
 
 .PHONY: watch-test
 watch-test: bootstrap build
